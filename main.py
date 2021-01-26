@@ -14,12 +14,12 @@ inec_file_name = "datos_inec.csv"
 
 sc = pyspark.SparkContext()
 sql = SQLContext(sc)
-###
+
+### ---------------- ###
+
 def initialize_frames():
     oij_data_frame = (sql.read.format("com.databricks.spark.csv").option("header", "true").load(oij_file_name))
-
     inec_data_frame = (sql.read.format("com.databricks.spark.csv").option("header", "true").load(inec_file_name))
-
     return oij_data_frame,inec_data_frame
 
 def remove_white_space(oij_data_frame,inec_data_frame):
@@ -28,14 +28,12 @@ def remove_white_space(oij_data_frame,inec_data_frame):
 
     inec_data_frame = inec_data_frame.withColumn("provincia_canton_distrito",trim(inec_data_frame.provincia_canton_distrito))
     inec_data_frame = inec_data_frame.withColumn("provincia_canton_distrito",regexp_replace("provincia_canton_distrito"," ",""))
-
     return oij_data_frame,inec_data_frame
 
 def to_lowercase(oij_data_frame, inec_data_frame):
     oij_data_frame = oij_data_frame.withColumn("Distrito",f.lower(f.col("Distrito")))
 
     inec_data_frame = inec_data_frame.withColumn("provincia_canton_distrito",f.lower(f.col("provincia_canton_distrito")))
-
     return oij_data_frame,inec_data_frame
 
 def show_data_frames(oij_data_frame,inec_data_frame):
@@ -59,8 +57,7 @@ def show_how_many_are_diff(oij_data_frame,inec_data_frame):
     diff_list = sql.sql("Select count(*) as cantidad from diff_table")
     diff_list.show();
 
-
-def make_trans():
+def trans():
     matching_string = ""
     replace_string = ""
 
@@ -76,27 +73,23 @@ def make_trans():
 
     return matching_string, replace_string
 
-def clean_text(c):
-    matching_string, replace_string = make_trans()
+def clean(c):
+    matching_string, replace_string = trans()
     return translate(
         regexp_replace(c, "\p{M}", ""),
         matching_string, replace_string
     ).alias(c)
 
 def remove_accents(inec_data_frame):
-    return inec_data_frame.select(clean_text("provincia_canton_distrito"))
+
+    return inec_data_frame.select(clean("provincia_canton_distrito"))
 
 
 oij_data_frame,inec_data_frame = initialize_frames()
 oij_data_frame,inec_data_frame = remove_white_space(oij_data_frame,inec_data_frame)
 oij_data_frame,inec_data_frame = to_lowercase(oij_data_frame,inec_data_frame)
 
-#show_diff_list(oij_data_frame,inec_data_frame)
-
 inec_data_frame = remove_accents(inec_data_frame)
 inec_data_frame.show()
 
-#show_diff_list(oij_data_frame,inec_data_frame)
-
-lista = make_diff_list(oij_data_frame,inec_data_frame);
-
+show_diff_list(oij_data_frame,inec_data_frame)
